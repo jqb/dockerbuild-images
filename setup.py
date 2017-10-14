@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="dockerbuild-images",
-    version='0.0.1',
+    version='0.0.2',
     description='Recursively builds Dockerfiles',
     author='Jakub Janoszek',
     author_email='kuba.janoszek@gmail.com',
@@ -12,6 +12,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'click',
+        'colorama',
     ],
     entry_points='''
         [console_scripts]

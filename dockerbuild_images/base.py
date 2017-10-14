@@ -5,8 +5,6 @@ import os
 import time
 import subprocess
 
-import click
-
 
 DOCKERFILE_NAME = 'Dockerfile'
 
@@ -28,28 +26,22 @@ def find_docker_files(path, dockerfile_name=DOCKERFILE_NAME):
             image_name = parts[0]
             root_absolute = os.path.join(os.getcwd(), root)
             root_absolute = os.path.abspath(root_absolute)
-            yield (root_absolute, fname, image_name)
+            command = [
+                'docker', 'build', '-f', fname, '-t', image_name, '.'
+            ]
+            yield (root_absolute, fname, image_name, command)
 
 
-def build(root, docker_filename, image_name, dry=False, verbose=True, sleep=2):
+def build(root, docker_filename, image_name, command, dry=False, sleep=2):
     curdir = os.getcwd()
-    log = click.echo
     try:
-        command = [
-            'docker', 'build', '-f', docker_filename, '-t', image_name, '.'
-        ]
-        if verbose:
-            log(u'*' * 80)
-            log(u'   Directory        :: %s' % root)
-            log(u'   Docker file name :: %s' % docker_filename)
-            log(u'   Image name       :: %s' % image_name)
-            log(u'   Command          :: %s' % ' '.join(command))
-            log(u'*' * 80)
-            log(u'')
         if sleep:
             time.sleep(sleep)
         os.chdir(root)
         if not dry:
-            subprocess.call(command)
+            subprocess.check_call(command)
+        return True
+    except subprocess.CalledProcessError:
+        return False
     finally:
         os.chdir(curdir)
