@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import time
 import datetime
 
 import click
@@ -27,6 +28,7 @@ def err(*args, **kwargs):
 @click.option('--sleep', default=2, help='Wait of some seconds before building found Dockerfile')
 @click.argument('directory')
 def main(directory, no_verbose, dry, sleep):
+    sleep = 0 if dry else sleep
     directory_absolute = os.path.abspath(
         os.path.join(os.getcwd(), directory)
     )
@@ -44,8 +46,11 @@ def main(directory, no_verbose, dry, sleep):
             log(u'*' * 80)
             log(u'')
 
+        if sleep:
+            time.sleep(sleep)
+
         start = datetime.datetime.now()
-        was_ok = build(root, docker_filename, image_name, command, dry=dry, sleep=sleep)
+        was_ok = build(root, docker_filename, image_name, command, dry=dry)
         took = datetime.datetime.now() - start
 
         log('')  # let's do one extra new-line after

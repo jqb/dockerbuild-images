@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import os
-import time
 import subprocess
 
 
@@ -32,11 +31,9 @@ def find_docker_files(path, dockerfile_name=DOCKERFILE_NAME):
             yield (root_absolute, fname, image_name, command)
 
 
-def build(root, docker_filename, image_name, command, dry=False, sleep=2):
+def build(root, docker_filename, image_name, command, dry=False):
     curdir = os.getcwd()
     try:
-        if sleep:
-            time.sleep(sleep)
         os.chdir(root)
         if not dry:
             subprocess.check_call(command)
