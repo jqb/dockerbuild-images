@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="dockerbuild-images",
-    version='0.0.2',
+    version='0.0.3',
     description='Recursively builds Dockerfiles',
     author='Jakub Janoszek',
     author_email='kuba.janoszek@gmail.com',
