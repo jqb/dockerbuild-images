@@ -20,3 +20,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
 )
+
+
+# Usage of setup.py:
+# $> python setup.py build sdist bdist_wheel upload   # build, make source dist and upload to PYPI
