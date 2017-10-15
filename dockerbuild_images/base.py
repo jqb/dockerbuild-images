@@ -9,7 +9,13 @@ DOCKERFILE_NAME = 'Dockerfile'
 DOCKER_COMMAND = os.environ.get('DOCKERBUILD_DOCKER_COMMAND', 'docker')
 
 
-def find_docker_files(path, dockerfile_name=DOCKERFILE_NAME):
+def docker_build_command(dockerfile_name, image_name):
+    return [
+        DOCKER_COMMAND, 'build', '-f', dockerfile_name, '-t', image_name, '.'
+    ]
+
+
+def find_docker_files(path, config_adapter=None, dockerfile_name=DOCKERFILE_NAME):
     for root, dirs, files in os.walk(path):
         if '.git' in root:
             continue
@@ -26,10 +32,23 @@ def find_docker_files(path, dockerfile_name=DOCKERFILE_NAME):
             image_name = parts[0]
             root_absolute = os.path.join(os.getcwd(), root)
             root_absolute = os.path.abspath(root_absolute)
-            command = [
-                DOCKER_COMMAND, 'build', '-f', fname, '-t', image_name, '.'
-            ]
-            yield (root_absolute, fname, image_name, command)
+            command = docker_build_command(fname, image_name)
+
+            exclude = False
+            if not config_adapter:
+                yield (root_absolute, fname, image_name, command, exclude)
+                continue
+
+            result = config_adapter.adapt(root_absolute, fname, image_name)
+            if not result:
+                exclude = True
+                yield (root_absolute, fname, image_name, command, exclude)
+                continue
+
+            root_absolute, fname, image_name = result
+            command = docker_build_command(fname, image_name)
+            exclude = False
+            yield (root_absolute, fname, image_name, command, exclude)
 
 
 def build(root, docker_filename, image_name, command, dry=False):

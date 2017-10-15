@@ -6,6 +6,7 @@ import datetime
 import click
 
 from .base import find_docker_files, build
+from . import config_reader
 
 
 def log(*args, **kwargs):
@@ -26,44 +27,60 @@ def err(*args, **kwargs):
 @click.option('--no-verbose', is_flag=True)
 @click.option('--dry', is_flag=True, help='Show only what script will do')
 @click.option('--sleep', default=2, help='Wait of some seconds before building found Dockerfile')
-@click.argument('directory')
-def main(directory, no_verbose, dry, sleep):
+def main(no_verbose, dry, sleep):
     sleep = 0 if dry else sleep
-    directory_absolute = os.path.abspath(
-        os.path.join(os.getcwd(), directory)
+
+    dockerbuild_filepath = os.path.abspath(
+        os.path.join(os.getcwd(), 'dockerbuild.yml')
     )
-    if not os.path.exists(directory_absolute):
-        raise click.UsageError('Provided directory "%s" needs to exists' % directory_absolute)
+    if not os.path.exists(dockerbuild_filepath):
+        raise click.UsageError('Configuration file "dockerbuild.yml" does not exists.')
+
+    try:
+        adapter = config_reader.read(dockerbuild_filepath)
+    except config_reader.ValidationError as e:
+        raise click.UsageError(e.message)
+
+    paths = [
+        item['path'] for item in adapter.images_recursive if item.get('path')
+    ]
 
     results = []
-    for root, docker_filename, image_name, command in find_docker_files(directory_absolute):
-        if not no_verbose:
-            log(u'*' * 80)
-            log(u'   Directory  | %s' % os.path.join(root, docker_filename))
-            log(u'   Image name | %s' % image_name)
-            log(u'   Command    | %s' % ' '.join(command))
-            if not dry:
+    for path in paths:
+        for root, docker_filename, image_name, command, exclude in find_docker_files(path, adapter):
+            if not no_verbose:
                 log(u'*' * 80)
-                log(u'')
+                log(u'   Dockerfile | %s' % os.path.join(root, docker_filename))
+                log(u'   Image name | %s' % image_name)
+                if not exclude:
+                    log(u'   Command    | %s' % ' '.join(command))
+                else:
+                    err(u'   EXLUDING   | Excluded by config file')
+                if not dry:
+                    log(u'*' * 80)
+                    log(u'')
 
-        if sleep:
-            time.sleep(sleep)
+            if exclude:
+                continue
 
-        start = datetime.datetime.now()
-        was_ok = build(root, docker_filename, image_name, command, dry=dry)
-        took = datetime.datetime.now() - start
+            if sleep:
+                time.sleep(sleep)
 
-        if not dry:
-            log('')  # let's do one extra new-line after
+            start = datetime.datetime.now()
+            was_ok = build(root, docker_filename, image_name, command, dry=dry)
+            took = datetime.datetime.now() - start
 
-        results.append(
-            (root, docker_filename, image_name, command, was_ok, took)
-        )
-        if not was_ok:
-            err('    %s' % ('*' * 80))
-            err('    SOMETHING WENT WRONG WITH BUILD !!! ')
-            err('    %s' % ('*' * 80))
-            err('')
+            if not dry:
+                log('')  # let's do one extra new-line after
+
+            results.append(
+                (root, docker_filename, image_name, command, was_ok, took)
+            )
+            if not was_ok:
+                err('    %s' % ('*' * 80))
+                err('    SOMETHING WENT WRONG WITH BUILD !!! ')
+                err('    %s' % ('*' * 80))
+                err('')
 
     if dry:
         return
