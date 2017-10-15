@@ -6,6 +6,7 @@ import subprocess
 
 
 DOCKERFILE_NAME = 'Dockerfile'
+DOCKER_COMMAND = os.environ.get('DOCKERBUILD_DOCKER_COMMAND', 'docker')
 
 
 def find_docker_files(path, dockerfile_name=DOCKERFILE_NAME):
@@ -26,7 +27,7 @@ def find_docker_files(path, dockerfile_name=DOCKERFILE_NAME):
             root_absolute = os.path.join(os.getcwd(), root)
             root_absolute = os.path.abspath(root_absolute)
             command = [
-                'docker', 'build', '-f', fname, '-t', image_name, '.'
+                DOCKER_COMMAND, 'build', '-f', fname, '-t', image_name, '.'
             ]
             yield (root_absolute, fname, image_name, command)
 
