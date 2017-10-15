@@ -44,13 +44,21 @@ def main(no_verbose, dry, sleep):
     paths = [
         item['path'] for item in adapter.images_recursive if item.get('path')
     ]
+    paths_provided = bool(paths)
+    paths = paths or ['./']
 
     results = []
+    seen = set()
     for path in paths:
-        for root, docker_filename, image_name, command, exclude in find_docker_files(path, adapter):
+        for root, docker_filename, image_name, command, exclude in find_docker_files(path, adapter, paths_provided):
+            seen_item = (root, docker_filename, image_name)
+            if seen_item in seen:
+                continue
+
+            seen.add(seen_item)
             if not no_verbose:
                 log(u'*' * 80)
-                log(u'   Dockerfile | %s' % os.path.join(root, docker_filename))
+                log(u'   Dockerfile | %s' % os.path.abspath(os.path.join(root, docker_filename)))
                 log(u'   Image name | %s' % image_name)
                 if not exclude:
                     log(u'   Command    | %s' % ' '.join(command))
