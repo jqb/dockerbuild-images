@@ -39,12 +39,12 @@ def main(directory, no_verbose, dry, sleep):
     for root, docker_filename, image_name, command in find_docker_files(directory_absolute):
         if not no_verbose:
             log(u'*' * 80)
-            log(u'   Directory        :: %s' % root)
-            log(u'   Docker file name :: %s' % docker_filename)
-            log(u'   Image name       :: %s' % image_name)
-            log(u'   Command          :: %s' % ' '.join(command))
-            log(u'*' * 80)
-            log(u'')
+            log(u'   Directory  | %s' % os.path.join(root, docker_filename))
+            log(u'   Image name | %s' % image_name)
+            log(u'   Command    | %s' % ' '.join(command))
+            if not dry:
+                log(u'*' * 80)
+                log(u'')
 
         if sleep:
             time.sleep(sleep)
@@ -53,17 +53,20 @@ def main(directory, no_verbose, dry, sleep):
         was_ok = build(root, docker_filename, image_name, command, dry=dry)
         took = datetime.datetime.now() - start
 
-        log('')  # let's do one extra new-line after
+        if not dry:
+            log('')  # let's do one extra new-line after
 
         results.append(
             (root, docker_filename, image_name, command, was_ok, took)
         )
         if not was_ok:
-            err('')
             err('    %s' % ('*' * 80))
             err('    SOMETHING WENT WRONG WITH BUILD !!! ')
             err('    %s' % ('*' * 80))
             err('')
+
+    if dry:
+        return
 
     log('\n')
     log('=' * 80)
