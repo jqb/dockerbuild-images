@@ -64,6 +64,16 @@ def find_docker_files(path, config_adapter, paths_provided, dockerfile_name=DOCK
         yield item
 
 
+def get_base_image_name(dockerfile_path):
+    # reads "FROM" image from the given dockerfile
+    with open(dockerfile_path, 'r') as fd:
+        for line in fd.readlines():
+            if line.startswith('FROM '):
+                splited = [item.strip('\n') for item in line.split('FROM ') if item.strip('\n')]
+                dependency_image = splited[-1]
+                return dependency_image
+
+
 def build(root, docker_filename, image_name, command, dry=False):
     curdir = os.getcwd()
     try:
