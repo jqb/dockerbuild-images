@@ -5,7 +5,8 @@ import datetime
 
 import click
 
-from .base import find_docker_files, build
+from .base import find_docker_files, build, get_base_image_name
+from . import dependency
 from . import config_reader
 
 
@@ -47,48 +48,62 @@ def main(no_verbose, dry, sleep):
     paths_provided = bool(paths)
     paths = paths or ['./']
 
-    results = []
+    # TODO: CLEAN ME UP
     seen = set()
+    declared = set()
+    edges = []
+    images_params = {}
     for path in paths:
         for root, docker_filename, image_name, command, exclude in find_docker_files(path, adapter, paths_provided):
             seen_item = (root, docker_filename, image_name)
             if seen_item in seen:
                 continue
-
-            seen.add(seen_item)
-            if not no_verbose:
-                log(u'*' * 80)
-                log(u'   Dockerfile | %s' % os.path.abspath(os.path.join(root, docker_filename)))
-                log(u'   Image name | %s' % image_name)
-                if not exclude:
-                    log(u'   Command    | %s' % ' '.join(command))
-                else:
-                    err(u'   EXLUDING   | Excluded by config file')
-                if not dry:
-                    log(u'*' * 80)
-                    log(u'')
-
-            if exclude:
-                continue
-
-            if sleep:
-                time.sleep(sleep)
-
-            start = datetime.datetime.now()
-            was_ok = build(root, docker_filename, image_name, command, dry=dry)
-            took = datetime.datetime.now() - start
-
-            if not dry:
-                log('')  # let's do one extra new-line after
-
-            results.append(
-                (root, docker_filename, image_name, command, was_ok, took)
+            declared.add(image_name)
+            base_image = get_base_image_name(os.path.join(root, docker_filename))
+            edges.append((image_name, base_image))
+            images_params[image_name] = (
+                root, docker_filename, image_name, command, exclude
             )
-            if not was_ok:
-                err('    %s' % ('*' * 80))
-                err('    SOMETHING WENT WRONG WITH BUILD !!! ')
-                err('    %s' % ('*' * 80))
-                err('')
+
+    building_order = dependency.resolve(edges, relevant_nodes=declared)
+
+    results = []
+    for image_name in building_order:
+        root, docker_filename, image_name, command, exclude = images_params[image_name]
+
+        if not no_verbose:
+            log(u'*' * 80)
+            log(u'   Dockerfile | %s' % os.path.abspath(os.path.join(root, docker_filename)))
+            log(u'   Image name | %s' % image_name)
+            if not exclude:
+                log(u'   Command    | %s' % ' '.join(command))
+            else:
+                err(u'   EXLUDING   | Excluded by config file')
+            if not dry:
+                log(u'*' * 80)
+                log(u'')
+
+        if exclude:
+            continue
+
+        if sleep:
+            time.sleep(sleep)
+
+        start = datetime.datetime.now()
+        was_ok = build(root, docker_filename, image_name, command, dry=dry)
+        took = datetime.datetime.now() - start
+
+        if not dry:
+            log('')  # let's do one extra new-line after
+
+        results.append(
+            (root, docker_filename, image_name, command, was_ok, took)
+        )
+        if not was_ok:
+            err('    %s' % ('*' * 80))
+            err('    SOMETHING WENT WRONG WITH BUILD !!! ')
+            err('    %s' % ('*' * 80))
+            err('')
 
     if dry:
         return
