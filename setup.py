@@ -14,6 +14,7 @@ setup(
         'click',
         'colorama',
         'PyYAML',
+        'networkx',  # resolving dependencies
     ],
     entry_points='''
         [console_scripts]
