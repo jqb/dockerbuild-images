@@ -9,13 +9,16 @@ DOCKERFILE_NAME = 'Dockerfile'
 DOCKER_COMMAND = os.environ.get('DOCKERBUILD_DOCKER_COMMAND', 'docker')
 
 
-def docker_build_command(dockerfile_name, image_name):
+def docker_build_command(dockerfile_name, image_name, no_cache=False):
     return [
-        DOCKER_COMMAND, 'build', '-f', dockerfile_name, '-t', image_name, '.'
+        DOCKER_COMMAND, 'build',
+    ] + (['--no-cache'] if no_cache else []) + [
+         '-f', dockerfile_name, '-t', image_name, '.'
     ]
 
 
-def handle_directory(relative_root, files, config_adapter, dockerfile_name=DOCKERFILE_NAME):
+def handle_directory(relative_root, files, config_adapter,
+                     dockerfile_name=DOCKERFILE_NAME, no_cache=False):
     for fname in files:
         fname = fname.decode('utf-8')
         if dockerfile_name not in fname:
@@ -28,7 +31,7 @@ def handle_directory(relative_root, files, config_adapter, dockerfile_name=DOCKE
         image_name = parts[0]
         root_absolute = os.path.join(os.getcwd(), relative_root)
         root_absolute = os.path.abspath(root_absolute)
-        command = docker_build_command(fname, image_name)
+        command = docker_build_command(fname, image_name, no_cache=no_cache)
 
         exclude = False
         if not config_adapter:
@@ -42,17 +45,19 @@ def handle_directory(relative_root, files, config_adapter, dockerfile_name=DOCKE
             continue
 
         root_absolute, fname, image_name = result
-        command = docker_build_command(fname, image_name)
+        command = docker_build_command(fname, image_name, no_cache=no_cache)
         exclude = False
         yield (root_absolute, fname, image_name, command, exclude)
 
 
-def find_docker_files(path, config_adapter, paths_provided, dockerfile_name=DOCKERFILE_NAME):
+def find_docker_files(path, config_adapter, paths_provided,
+                      dockerfile_name=DOCKERFILE_NAME, no_cache=False):
     if paths_provided:
         for root, dirs, files in os.walk(path):
             if '.git' in root:
                 continue
-            for item in handle_directory(root, files, config_adapter, dockerfile_name):
+            for item in handle_directory(root, files, config_adapter,
+                                         dockerfile_name, no_cache=no_cache):
                 yield item
         return  # END !
 

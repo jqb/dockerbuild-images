@@ -28,7 +28,8 @@ def err(*args, **kwargs):
 @click.option('--no-verbose', is_flag=True)
 @click.option('--dry', is_flag=True, help='Show only what script will do')
 @click.option('--sleep', default=2, help='Wait of some seconds before building found Dockerfile')
-def main(no_verbose, dry, sleep):
+@click.option('--no-cache', is_flag=True)
+def main(no_verbose, dry, sleep, no_cache):
     sleep = 0 if dry else sleep
 
     dockerbuild_filepath = os.path.abspath(
@@ -54,7 +55,8 @@ def main(no_verbose, dry, sleep):
     edges = []
     images_params = {}
     for path in paths:
-        for root, docker_filename, image_name, command, exclude in find_docker_files(path, adapter, paths_provided):
+        for root, docker_filename, image_name, command, exclude in find_docker_files(
+                path, adapter, paths_provided, no_cache=no_cache):
             seen_item = (root, docker_filename, image_name)
             if seen_item in seen:
                 continue
