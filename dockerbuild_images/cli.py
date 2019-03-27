@@ -32,12 +32,18 @@ def err(*args, **kwargs):
 def main(no_verbose, dry, sleep, no_cache):
     sleep = 0 if dry else sleep
 
-    dockerbuild_filepath = os.path.abspath(
-        os.path.join(os.getcwd(), 'dockerbuild.yml')
-    )
-    if not os.path.exists(dockerbuild_filepath):
+    def ensure_at_least_one(filenames):
+        for fname in filenames:
+            dockerbuild_filepath = os.path.abspath(
+                os.path.join(os.getcwd(), fname))
+            if os.path.exists(dockerbuild_filepath):
+                return dockerbuild_filepath
         raise click.UsageError('Configuration file "dockerbuild.yml" does not exists.')
 
+    dockerbuild_filepath = ensure_at_least_one([
+        'dockerbuild.yaml',
+        'dockerbuild.yml',
+    ])
     try:
         adapter = config_reader.read(dockerbuild_filepath)
     except config_reader.ValidationError as e:
