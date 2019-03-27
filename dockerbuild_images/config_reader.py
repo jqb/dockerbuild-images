@@ -84,7 +84,7 @@ def validate(config):
 
 def read(config_filepath):
     with open(config_filepath, 'r') as fd:
-        config = yaml.load(fd.read())
+        config = yaml.load(fd.read(), Loader=yaml.Loader)
     config = validate(config)
     config = normalize(config)
     return ConfigurationAdapter(**config)
