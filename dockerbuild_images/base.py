@@ -20,13 +20,17 @@ def docker_build_command(dockerfile_name, image_name, no_cache=False):
 def handle_directory(relative_root, files, config_adapter,
                      dockerfile_name=DOCKERFILE_NAME, no_cache=False):
     for fname in files:
-        fname = fname.decode('utf-8')
+        try:
+            fname = fname.decode('utf-8')
+        except Exception:
+            fname = fname
         if dockerfile_name not in fname:
             continue
 
         parts = filter(bool, [
             p.strip('_') for p in fname.split(dockerfile_name, 1)
         ])
+        parts = list(parts)
         parts = parts or [os.path.basename(relative_root)]
         image_name = parts[0]
         root_absolute = os.path.join(os.getcwd(), relative_root)
