@@ -1,5 +1,6 @@
 import os
 import yaml
+from . import pyimporter
 
 
 class ValidationError(Exception):
@@ -10,13 +11,33 @@ def normalize_images_recursive_entry(images_recursive, curdir=None):
     curdir = curdir or os.getcwd()
     result = []
     for item in images_recursive:
-        key = ('path' in item) and 'path'
-        if not key:
-            key = ('exclude' in item) and 'exclude'
-        path = item[key]
-        result.append({
-            key: os.path.abspath(os.path.join(curdir, path))
-        })
+        path = item.get('path')
+        if path:
+            result.append({
+                'path': os.path.abspath(os.path.join(curdir, path))
+            })
+            continue
+
+        exclude = item.get('exclude')
+        if exclude:
+            result.append({
+                'exclude': os.path.abspath(os.path.join(curdir, exclude))
+            })
+            continue
+
+        module = item.get('module')
+        if module:
+            module = pyimporter.import_(module)
+            result.append({
+                'path': os.path.dirname(module.__file__)
+            })
+            continue
+
+        raise ValidationError((
+            'Wrong definition in "images_recursive" section: %s | '
+            '"path", "exclude" or "module" key required'
+        ) % (item, ))
+
     return result
 
 
