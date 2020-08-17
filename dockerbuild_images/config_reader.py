@@ -84,7 +84,9 @@ class ConfigurationAdapter(object):
             if not exclude:
                 continue
             exclude = '%s/' % exclude if not exclude.endswith('/') else exclude
-            dockerfile_directory_cmp = '%s/' % dockerfile_directory if not dockerfile_directory.endswith('/') else dockerfile_directory
+            dockerfile_directory_cmp = (
+                '%s/' % dockerfile_directory if not dockerfile_directory.endswith('/')
+                else dockerfile_directory)
             if dockerfile_directory_cmp.startswith(exclude):
                 return None
             # There's probably no point in checking "path"
