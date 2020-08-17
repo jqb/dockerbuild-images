@@ -7,6 +7,9 @@ class ValidationError(Exception):
     pass
 
 
+NIL = object()
+
+
 def normalize_images_recursive_entry(images_recursive, curdir=None):
     curdir = curdir or os.getcwd()
     result = []
@@ -49,6 +52,11 @@ def normalize_images_entry(images, curdir=None):
     return result
 
 
+def normalize_build_args_envfile(envfile_entry, curdir=None):
+    curdir = curdir or os.getcwd()
+    return os.path.abspath(os.path.join(curdir, envfile_entry))
+
+
 def normalize(config):
     if 'images' in config:
         config['images'] = normalize_images_entry(config['images'])
@@ -57,12 +65,42 @@ def normalize(config):
     return config
 
 
+def construct_build_args(build_args_file):
+    with open(build_args_file, 'r') as fd:
+        lines = list(fd.readlines())
+
+    build_args = []
+    for line in lines:
+        if line.startswith('#'):
+            continue
+        build_args.append(line.strip())
+    return build_args
+
+
 class ConfigurationAdapter(object):
     '''Filters out paths to Dockerfiles and adapts image_name is needed'''
 
-    def __init__(self, images=None, images_recursive=None):
+    def __init__(self, images=None, images_recursive=None, build_args=None):
         self.images = images or {}
         self.images_recursive = images_recursive or []
+        self._build_args = []
+        self._build_args_from_configfile = build_args or []
+
+    def get_build_args_file_path_from_environ(self, default=NIL):
+        envfile = os.environ.get('DOCKERBUILD_BUILD_ARGS_FILE') or NIL
+        return normalize_build_args_envfile(envfile) if envfile is not NIL else default
+
+    @property
+    def build_args(self):
+        if self._build_args:
+            return self._build_args
+
+        build_args_file = self.get_build_args_file_path_from_environ()
+        if build_args_file is NIL:
+            self._build_args = self._build_args_from_configfile
+        else:
+            self._build_args = construct_build_args(build_args_file)
+        return self._build_args
 
     def adapt(self, dockerfile_directory, dockerfile_name, image_name):
         dockerfile_absolute = os.path.abspath(
